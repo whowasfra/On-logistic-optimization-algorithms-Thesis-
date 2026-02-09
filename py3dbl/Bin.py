@@ -1,5 +1,5 @@
-
 from decimal import Decimal
+from typing import Union
 from .Decimal import set_to_decimal
 from .Item import Item
 from .Space import Vector3, Volume
@@ -10,21 +10,21 @@ class BinModel:
     """
     Describes a model of bin
     """
-    def __init__(self, name : str, size : Vector3, max_weight : Decimal):
+    def __init__(self, name : str, size : Union[Vector3, tuple], max_weight : Union[Decimal, int, float]):
         """
         BinModel constructor
         
         :param self: Current BinModel object
         :param name: A descriptive name for the model
         :type name: str
-        :param size: 3D vector that defines the sizes of the Bin
-        :type size: Vector3
+        :param size: 3D vector that defines the sizes of the Bin (can also be a tuple)
+        :type size: Vector3 | tuple
         :param max_weight: Maximum weight allowed to load
-        :type max_weight: Decimal
+        :type max_weight: Decimal | int | float
         """
         self.name = name
-        self._size = Vector3(*size)
-        self.max_weight = max_weight
+        self._size = Vector3(*size) if not isinstance(size, Vector3) else size
+        self.max_weight = Decimal(max_weight) if not isinstance(max_weight, Decimal) else max_weight
 
     # Properties to simplify access
     # Note: sizes are only defined on construction
@@ -77,7 +77,7 @@ class Bin:
         """
         self.id = id
         self._model : BinModel   = model
-        self.weight : Decimal    = 0   # Current loaded weight
+        self.weight : Decimal    = Decimal(0)   # Current loaded weight
         self.items  : list[Item] = []  # Current loaded items
 
     # Properties to access model data
