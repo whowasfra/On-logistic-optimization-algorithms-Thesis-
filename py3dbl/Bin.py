@@ -2,7 +2,7 @@ from decimal import Decimal
 from typing import Union
 from .Decimal import set_to_decimal
 from .Item import Item
-from .Space import Vector3, Volume
+from .Space import Vector3
 
 MINIMUM_SUPPORT_SURFACE = .5
 
@@ -126,3 +126,37 @@ class Bin:
             return True
         except ValueError:
             return False # the item was not there
+
+    def calculate_center_of_gravity(self):
+        """"
+        Calculate the center of gravity of the current load in the bin.
+        Returns a Vector3 representing the center of gravity coordinates (x, y, z).
+        """
+        total_weight = self.weight
+
+        if total_weight == 0:
+            return Vector3(self.width / 2, self.height / 2, self.depth / 2)  # Center of the bin if empty
+        
+        moment_x = Decimal(0);
+        moment_y = Decimal(0);
+        moment_z = Decimal(0);  
+
+        for item in self.items:
+            # Calculate the center of gravity of the item
+            # The item position is the coordinate of its bottom-left-front corner, so we add half of its dimensions 
+            # to get the center of the item
+            center_x = item.position.x + (item.width / Decimal(2))
+            center_y = item.position.y + (item.height / Decimal(2))
+            center_z = item.position.z + (item.depth / Decimal(2))
+
+            # Sum of the moments (Lever arm * Weight )
+            moment_x += center_x * item.weight
+            moment_y += center_y * item.weight
+            moment_z += center_z * item.weight
+
+
+        cog_x = moment_x / total_weight
+        cog_y = moment_y / total_weight
+        cog_z = moment_z / total_weight
+
+        return Vector3(cog_x, cog_y, cog_z)
