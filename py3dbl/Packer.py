@@ -27,15 +27,24 @@ def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], def
                 # Set the item's position next to the current item along the specified axis
                 new_pos = Vector3(*pivot)
                 new_pos[axis] += ib.dimensions[axis]
-                item.position = new_pos
                 
-                for oriz_deg_free in range(2):
-                    for vert_deg_free in range(2):
-                        if bin.put_item(item,constraints):
-                            return True
-                        else:
-                            item.rotate90(vertical=True)
-                    item.rotate90(orizontal=True)
+                # When placing along X or Z, also try ground level (Y=0)
+                # to avoid floating items
+                y_candidates = [new_pos.y]
+                if axis != 1 and new_pos.y != 0:
+                    y_candidates.append(Decimal(0))
+                
+                for y_pos in y_candidates:
+                    new_pos.y = y_pos
+                    item.position = Vector3(*new_pos)
+                    
+                    for oriz_deg_free in range(2):
+                        for vert_deg_free in range(2):
+                            if bin.put_item(item,constraints):
+                                return True
+                            else:
+                                item.rotate90(vertical=True)
+                        item.rotate90(orizontal=True)
         
         # Restore original position and dimensions if the item could not be placed
         item.position = old_pos
