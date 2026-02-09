@@ -46,7 +46,7 @@ def plot_3d_py3dbp(packer, best_bin, type):
             zaxis=dict(title='Depth'),
             aspectmode='data'
         ),
-        title=f"3D Packing Visualization - {bin.name} ({len(bin.items)} items)"
+        title=f"3D Packing Visualization - Bin {bin.id} ({len(bin.items)} items)"
     )
 
     if type: 
