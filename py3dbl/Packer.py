@@ -1,7 +1,7 @@
 from decimal import Decimal
 from .Item import Item
 from .Bin import Bin, BinModel
-from .Space import Vector3, Volume
+from .Space import Vector3, Volume, rect_intersect
 from .Decimal import decimals
 from .Constraints import constraints, Constraint
 
@@ -28,23 +28,35 @@ def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], def
                 new_pos = Vector3(*pivot)
                 new_pos[axis] += ib.dimensions[axis]
                 
-                # When placing along X or Z, also try ground level (Y=0)
-                # to avoid floating items
-                y_candidates = [new_pos.y]
-                if axis != 1 and new_pos.y != 0:
-                    y_candidates.append(Decimal(0))
-                
-                for y_pos in y_candidates:
-                    new_pos.y = y_pos
-                    item.position = Vector3(*new_pos)
-                    
-                    for oriz_deg_free in range(2):
-                        for vert_deg_free in range(2):
-                            if bin.put_item(item,constraints):
+                for oriz_deg_free in range(2):
+                    for vert_deg_free in range(2):
+                        # Set temporary X-Z position to compute surface heights
+                        item.position = Vector3(new_pos.x, Decimal(0), new_pos.z)
+                        
+                        if axis == 1:
+                            # Placing on top of pivot item: Y is fixed
+                            y_candidates = [new_pos.y]
+                        else:
+                            # Placing along X or Z: find all valid resting surfaces
+                            # by scanning items that overlap in X-Z at current rotation
+                            y_set = set()
+                            y_set.add(Decimal(0))  # floor is always an option
+                            for existing in bin.items:
+                                existing_top = existing.position.y + existing.height
+                                overlap = rect_intersect(existing.volume, item.volume, 
+                                                        Vector3.AXIS['x'], Vector3.AXIS['z'])
+                                if overlap > 0:
+                                    y_set.add(existing_top)
+                            # Try highest surfaces first (prefer stacking)
+                            y_candidates = sorted(y_set, reverse=True)
+                        
+                        for y_pos in y_candidates:
+                            item.position = Vector3(new_pos.x, y_pos, new_pos.z)
+                            if bin.put_item(item, constraints):
                                 return True
-                            else:
-                                item.rotate90(vertical=True)
-                        item.rotate90(orizontal=True)
+                        
+                        item.rotate90(vertical=True)
+                    item.rotate90(orizontal=True)
         
         # Restore original position and dimensions if the item could not be placed
         item.position = old_pos
