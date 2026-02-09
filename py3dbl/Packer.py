@@ -1,8 +1,9 @@
+from decimal import Decimal
 from .Item import Item
 from .Bin import Bin, BinModel
 from .Space import Vector3, Volume
 from .Decimal import decimals
-from .Constraints import constraints, Constraint, process_constraints
+from .Constraints import constraints, Constraint
 
 # basical constraints 
 BASE_CONSTRAINTS = [
@@ -17,11 +18,17 @@ PACKING_STRATEGIES = []
 def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], default_bin : None|BinModel = None, constraints : list[Constraint] = BASE_CONSTRAINTS):
     
     def try_fit(bin : Bin, item : Item):
-        old_pos = item.position
+        old_pos = Vector3(*item.position)
+        old_size = Vector3(*item.dimensions)
+        
         for ib in bin.items:
             pivot = Vector3(*ib.position)
             for axis in range(3):
-                item.position = pivot + map(lambda x: ib.dimensions[x] if x == axis else 0, range(3))
+                # Imposta la posizione dell'item accanto all'item corrente lungo l'asse specificato
+                new_pos = Vector3(*pivot)
+                new_pos[axis] += ib.dimensions[axis]
+                item.position = new_pos
+                
                 for oriz_deg_free in range(2):
                     for vert_deg_free in range(2):
                         if bin.put_item(item,constraints):
@@ -29,7 +36,10 @@ def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], def
                         else:
                             item.rotate90(vertical=True)
                     item.rotate90(orizontal=True)
+        
+        # Ripristina posizione e dimensioni originali se non è stato possibile inserire l'item
         item.position = old_pos
+        item._volume.size = old_size
         return False
 
     current_configuration = []
@@ -97,15 +107,16 @@ class Packer():
     def clear_current_configuration(self):
         self.current_configuration.clear()
 
-    def _pack_to_bin(self, bin : Bin, item : Item, static_constraints, space_constraints):
+    def _pack_to_bin(self, bin : Bin, item : Item, constraints):
         if not bin.items:
-            return bin.put_item(item)
+            return bin.put_item(item, constraints)
         else:
             for axis in range(0, 3):
                 for ib in bin.items:
                     pivot = Vector3(*ib.position)
                     pivot[axis] += ib.dimensions[axis]
-                    if bin.put_item(item, pivot, static_constraints=static_constraints,space_constraints=space_constraints):
+                    item.position = pivot
+                    if bin.put_item(item, constraints):
                         return True
             return False
 
@@ -114,7 +125,7 @@ class Packer():
         for model in models:
             bin = Bin(0,model)
             for item in self.items:
-                self._pack_to_bin(bin,item,)
+                self._pack_to_bin(bin,item,constraints)
             configuration.append(bin)
         return configuration
     
@@ -136,7 +147,8 @@ class Packer():
         for item in items_to_pack:
             item.format_numbers(number_of_decimals)
 
-        self.default_bin.format_numbers(number_of_decimals)
+        if self.default_bin is not None:
+            self.default_bin.format_numbers(number_of_decimals)
         
         available_bins.sort(
             key=lambda bin: bin.volume, reverse=bigger_first
@@ -171,14 +183,20 @@ class Packer():
 
     def calculate_statistics(self):
         statistics = {
-            "loaded_volume": 0,
-            "loaded_weight": 0,
+            "loaded_volume": Decimal(0),
+            "loaded_weight": Decimal(0),
         }
-        configuration_volume = 0
+        configuration_volume = Decimal(0)
         for bin in self.current_configuration:
             for item in bin.items:
                 statistics["loaded_volume"] += item.volume.volume()
             statistics["loaded_weight"] += bin.weight
             configuration_volume += bin._model.volume
-        statistics["average_volume"] = statistics["loaded_volume"]/configuration_volume
+        
+        # Evita divisione per zero
+        if configuration_volume > 0:
+            statistics["average_volume"] = statistics["loaded_volume"]/configuration_volume
+        else:
+            statistics["average_volume"] = Decimal(0)
+        
         return statistics
