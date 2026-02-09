@@ -100,7 +100,7 @@ def render_bin_interactive(bin : Bin, colors : list[str] = COLORS, render_bin : 
         render_item_interactive(item=item,fig=fig,color=colors[idx%len(colors)],border_width=border_width,border_color=border_color,transparency=transparency)
 
     if render_bin:
-        render_volume_interactive(Volume(bin.dimension),fig=fig,color="lightgrey",transparency=.9,name="Bin",show_border=False)
+        render_volume_interactive(Volume(size=bin.dimension),fig=fig,color="lightgrey",transparency=.9,name="Bin",show_border=False)
 
     fig.update_layout(
         scene=dict(
