@@ -97,3 +97,61 @@ def is_supported(bin: Bin, item : Item, minimum_support : float = 0.75):
     
     support_ratio = contact_area / item_base_area
     return support_ratio >= Decimal(str(minimum_support))
+
+@constraint(weight=25) 
+def maintain_center_of_gravity(bin : Bin, item : Item, 
+                              tol_x_percent : float = 0.3,
+                              tol_z_percent : float = 0.3,
+                              min_load_threshold : float = 0.3):
+    """
+    Check that the center of gravity of the bin after placing the item is within a certain tolerance from the center of the bin.
+    :param tol_x_percent: Tolerance on the X axis as a percentage of the bin width (0.0-1.0)
+    :type tol_x_percent: float
+    :param tol_z_percent: Tolerance on the Z axis as a percentage of the bin depth (0.0-1.0)
+    :type tol_z_percent: float
+    :param min_load_threshold: Minimum load ratio (current weight + item weight) / max weight to apply the constraint, to avoid penalizing the placement of the first items
+    :type min_load_threshold: float
+    """
+    
+    # Calculate the future weight
+    future_weight = bin.weight + item.weight
+    if bin.max_weight > 0:
+        load_ratio = future_weight / bin.max_weight
+        if load_ratio < min_load_threshold:
+            return True  # Skip the constraint for low load ratios
+        
+    # Calculate the current center of gravity
+    current_cog = bin.calculate_center_of_gravity()
+
+    # Calculate the center of gravity of the item to be added
+    current_moment_x = current_cog.x * item.weight
+    current_moment_z = current_cog.z * item.weight
+
+    # Calculate the moments of the new item
+    item_center_x = item.position.x + (item.width / Decimal(2))
+    item_center_z = item.position.z + (item.depth / Decimal(2))
+
+    item_moment_x = item_center_x * item.weight
+    item_moment_z = item_center_z * item.weight
+
+    # Calculate the future center of gravity
+    future_cog_x = (current_moment_x + item_moment_x) / future_weight
+    future_cog_z = (current_moment_z + item_moment_z) / future_weight
+
+    # Calculate the center of the bin
+    bin_center_x = bin.width / Decimal(2)
+    #bin_center_z = bin.depth * Decimal(0.4) # consider the center of gravity more tolerant towards the back of the bin, where the load is generally more stable
+    bin_center_z = bin.depth / Decimal(2)
+
+    # Calculate the tolerances in absolute terms
+    tol_x = bin.width * Decimal(tol_x_percent)
+    tol_z = bin.depth * Decimal(tol_z_percent)
+
+    # Check if the future center of gravity is within the tolerances
+    if abs(future_cog_x - bin_center_x) > tol_x :
+        return False
+
+    if abs(future_cog_z - bin_center_z) > tol_z :
+        return False
+
+    return True  
