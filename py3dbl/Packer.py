@@ -24,7 +24,7 @@ def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], def
         for ib in bin.items:
             pivot = Vector3(*ib.position)
             for axis in range(3):
-                # Imposta la posizione dell'item accanto all'item corrente lungo l'asse specificato
+                # Set the item's position next to the current item along the specified axis
                 new_pos = Vector3(*pivot)
                 new_pos[axis] += ib.dimensions[axis]
                 item.position = new_pos
@@ -37,7 +37,7 @@ def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], def
                             item.rotate90(vertical=True)
                     item.rotate90(orizontal=True)
         
-        # Ripristina posizione e dimensioni originali se non è stato possibile inserire l'item
+        # Restore original position and dimensions if the item could not be placed
         item.position = old_pos
         item._volume.size = old_size
         return False
