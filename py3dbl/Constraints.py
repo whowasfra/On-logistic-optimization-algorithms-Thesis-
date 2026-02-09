@@ -67,19 +67,45 @@ def no_overlap(bin : Bin, item : Item):
 
 @constraint(weight=20)
 def is_supported(bin: Bin, item : Item, allow_item_fall : bool = False, minimum_support : float = 0.5):
+    """
+    Check that the item is physically supported.
+    
+    :param minimum_support: Minimum ratio of the item's base area that must be supported (0.0-1.0)
+    :type minimum_support: float
+    """
     if item.position.y == 0:
         return True
     else:
         highest_y = 0
-        target_items = []
+        total_support_area = 0
+        
+        # Base area of the item (x-z plane)
+        item_base_area = item.dimensions[Vector3.AXIS['x']] * item.dimensions[Vector3.AXIS['z']]
+        
         for ib in bin.items:
-            # check for base intersection (plane x-z)
-            if rect_intersect(ib.volume,item.volume,Vector3.AXIS['x'],Vector3.AXIS['z']) > minimum_support:
-                target_items.append(ib)
-                highest_y = max(highest_y,ib.position.y+ib.height)
-
-        if len(target_items)==0 or (not allow_item_fall and highest_y!=item.position.y):
-            return False
+            # Top height of the existing item
+            ib_top_y = ib.position.y + ib.height
+            
+            # Only consider items that are below us
+            if ib_top_y <= item.position.y:
+                # Compute overlap on the base (x-z plane)
+                overlap = rect_intersect(ib.volume, item.volume, Vector3.AXIS['x'], Vector3.AXIS['z'])
+                if overlap > 0:
+                    total_support_area += overlap
+                    highest_y = max(highest_y, ib_top_y)
+        
+        # Compute support ratio
+        if item_base_area > 0:
+            support_ratio = total_support_area / item_base_area
         else:
-            item.position.y = highest_y
-            return True
+            support_ratio = 0
+        
+        if support_ratio < minimum_support:
+            return False
+        
+        # If the item is not exactly resting on a surface, adjust its Y position
+        if not allow_item_fall and highest_y != item.position.y:
+            return False
+        
+        item.position.y = highest_y
+        return True
