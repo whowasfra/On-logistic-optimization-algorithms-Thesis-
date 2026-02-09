@@ -1,6 +1,7 @@
 from .Bin import Bin
 from .Item import Item
 from .Space import Volume, Vector3, intersect, rect_intersect
+from decimal import Decimal
 
 class Constraint:
     """
@@ -66,46 +67,33 @@ def no_overlap(bin : Bin, item : Item):
     return len(bin.items) == 0 or not any([intersect(ib.volume,item.volume) for ib in bin.items])
 
 @constraint(weight=20)
-def is_supported(bin: Bin, item : Item, allow_item_fall : bool = True, minimum_support : float = 0.75):
+def is_supported(bin: Bin, item : Item, minimum_support : float = 0.75):
     """
-    Check that the item is physically supported.
+    Check that the item is physically supported by direct contact.
+    Only counts support from items whose top surface is exactly at the item's bottom Y.
+    This is a pure validator: it does NOT modify the item's position.
     
     :param minimum_support: Minimum ratio of the item's base area that must be supported (0.0-1.0)
     :type minimum_support: float
     """
+    # Items on the floor are always supported
     if item.position.y == 0:
         return True
-    else:
-        highest_y = 0
-        total_support_area = 0
-        
-        # Base area of the item (x-z plane)
-        item_base_area = item.dimensions[Vector3.AXIS['x']] * item.dimensions[Vector3.AXIS['z']]
-        
-        for ib in bin.items:
-            # Top height of the existing item
-            ib_top_y = ib.position.y + ib.height
-            
-            # Only consider items that are below us
-            if ib_top_y <= item.position.y:
-                # Compute overlap on the base (x-z plane)
-                overlap = rect_intersect(ib.volume, item.volume, Vector3.AXIS['x'], Vector3.AXIS['z'])
-                if overlap > 0:
-                    total_support_area += overlap
-                    highest_y = max(highest_y, ib_top_y)
-        
-        # Compute support ratio
-        if item_base_area > 0:
-            support_ratio = total_support_area / item_base_area
-        else:
-            support_ratio = 0
-        
-        if support_ratio < minimum_support:
-            return False
-        
-        # If the item is not exactly resting on a surface, adjust its Y position
-        if not allow_item_fall and highest_y != item.position.y:
-            return False
-        
-        item.position.y = highest_y
-        return True
+    
+    # Base area of the item (X-Z plane)
+    item_base_area = item.dimensions[Vector3.AXIS['x']] * item.dimensions[Vector3.AXIS['z']]
+    if item_base_area <= 0:
+        return False
+    
+    # Only count support from items in direct contact:
+    # their top surface must be exactly at the item's bottom Y
+    contact_area = Decimal(0)
+    for ib in bin.items:
+        ib_top_y = ib.position.y + ib.height
+        if ib_top_y == item.position.y:
+            overlap = rect_intersect(ib.volume, item.volume, Vector3.AXIS['x'], Vector3.AXIS['z'])
+            if overlap > 0:
+                contact_area += overlap
+    
+    support_ratio = contact_area / item_base_area
+    return support_ratio >= Decimal(str(minimum_support))
