@@ -16,7 +16,6 @@ class Constraint:
         """
         self.func = func
         self.weight = weight
-        self.type = type
         self.kwargs = dict()
     
     def set_parameter(self,name : str, value):
@@ -60,7 +59,7 @@ def weight_within_limit(bin : Bin, item : Item):
 
 @constraint(weight=10)
 def fits_inside_bin(bin : Bin, item : Item):
-    return all([bin.dimension[axis] > (item.position[axis] + item.dimensions[axis]) for axis in range(3)])
+    return all([bin.dimension[axis] >= (item.position[axis] + item.dimensions[axis]) for axis in range(3)])
     
 @constraint(weight=15)
 def no_overlap(bin : Bin, item : Item):
