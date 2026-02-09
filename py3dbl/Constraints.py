@@ -66,7 +66,7 @@ def no_overlap(bin : Bin, item : Item):
     return len(bin.items) == 0 or not any([intersect(ib.volume,item.volume) for ib in bin.items])
 
 @constraint(weight=20)
-def is_supported(bin: Bin, item : Item, allow_item_fall : bool = False, minimum_support : float = 0.5):
+def is_supported(bin: Bin, item : Item, allow_item_fall : bool = True, minimum_support : float = 0.75):
     """
     Check that the item is physically supported.
     
