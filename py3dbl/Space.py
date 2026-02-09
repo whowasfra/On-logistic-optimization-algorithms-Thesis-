@@ -9,7 +9,7 @@ class Vector3:
     """
     AXIS = { "x": 0, "y": 1, "z": 2}
 
-    def __init__(self, x : Decimal = 0, y : Decimal = 0, z : Decimal = 0):
+    def __init__(self, x : Decimal = Decimal(0), y : Decimal = Decimal(0), z : Decimal = Decimal(0)):
         self.vect = [x,y,z]
 
     @property
@@ -70,7 +70,7 @@ class Volume:
     Models an occupied space
     """
 
-    def __init__(self, size : Vector3, position : Vector3 = Vector3()):
+    def __init__(self, size : Vector3, position : Vector3 | None = None):
         """
         Constructor for Volume object
         
@@ -80,6 +80,8 @@ class Volume:
         :param position: 3D Vector that describes the central point 
         :type position: Vector3
         """
+        if position is None:
+            position = Vector3()
         self.position = Vector3(*position)
         self.size = Vector3(*size)
 
