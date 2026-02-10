@@ -97,7 +97,7 @@ class Packer():
     """
     Store configurations and execute 3D bin packing algorithm(s)
     """
-    def __init__(self, default_bin : None|BinModel = None, fleet : list[BinModel] = [], items : list[Item] = [], current_configuration : list[Bin] = []):
+    def __init__(self, default_bin : None|BinModel = None, fleet : list[BinModel] | None = None, items : list[Item] | None = None, current_configuration : list[Bin] | None = None):
         """
         :param default_bin: a bin model that describes the preferred bin to pack in case the fleet is insufficent
         :type default_bin: None | BinModel
@@ -108,10 +108,10 @@ class Packer():
         :param current_configuration: a configuration to start on
         :type current_configuration: None | list[Bin]
         """
-        self.bins   =  fleet
-        self.items  =  items
+        self.bins   =  fleet if fleet is not None else []
+        self.items  =  items if items is not None else []
         self.default_bin           = default_bin
-        self.current_configuration = current_configuration
+        self.current_configuration = current_configuration if current_configuration is not None else []
     
     def set_default_bin(self, bin : BinModel):
         self.default_bin = bin
