@@ -102,15 +102,30 @@ def is_supported(bin: Bin, item : Item, minimum_support : float = 0.75):
 def maintain_center_of_gravity(bin : Bin, item : Item, 
                               tol_x_percent : float = 0.2,
                               tol_z_percent : float = 0.2,
-                              min_load_threshold : float = 0.1):
+                              min_load_threshold : float = 0.1,
+                              progressive_tightening : float = 0.7):
     """
-    Check that the center of gravity of the bin after placing the item is within a certain tolerance from the center of the bin.
-    :param tol_x_percent: Tolerance on the X axis as a percentage of the bin width (0.0-1.0)
-    :type tol_x_percent: float
-    :param tol_z_percent: Tolerance on the Z axis as a percentage of the bin depth (0.0-1.0)
-    :type tol_z_percent: float
-    :param min_load_threshold: Minimum load ratio (current weight + item weight) / max weight to apply the constraint, to avoid penalizing the placement of the first items
-    :type min_load_threshold: float
+    Progressive Center-of-Gravity constraint.
+
+    Checks that the CoG of the bin after placing the item stays within a
+    tolerance zone around the bin centre on the X-Z plane.
+
+    The constraint becomes **progressively stricter** as the bin fills up:
+    at low load ratios the tolerance is at its configured maximum, and it
+    shrinks linearly towards ``tol * (1 - progressive_tightening)`` when
+    the bin is fully loaded.  This gives early items freedom to spread out
+    while forcing later items to correct any imbalance.
+
+    Additionally, a **corrective bias** is applied: when the current CoG
+    deviates from the bin centre by more than half the effective tolerance,
+    any placement that would *increase* that deviation is rejected.  This
+    prevents the imbalance from growing once it becomes significant.
+
+    :param tol_x_percent: Maximum tolerance on X as a ratio of bin width (0.0-1.0)
+    :param tol_z_percent: Maximum tolerance on Z as a ratio of bin depth (0.0-1.0)
+    :param min_load_threshold: Load ratio below which the constraint is skipped
+    :param progressive_tightening: How much the tolerance shrinks at full load (0.0-1.0).
+           0.0 = fixed tolerance, 1.0 = tolerance shrinks to zero at full load.
     """
     
     # Calculate the future weight
@@ -119,6 +134,8 @@ def maintain_center_of_gravity(bin : Bin, item : Item,
         load_ratio = future_weight / bin.max_weight
         if load_ratio < min_load_threshold:
             return True  # Skip the constraint for low load ratios
+    else:
+        load_ratio = Decimal(0)
         
     # Calculate the current center of gravity
     current_cog = bin.calculate_center_of_gravity()
@@ -138,20 +155,38 @@ def maintain_center_of_gravity(bin : Bin, item : Item,
     future_cog_x = (current_moment_x + item_moment_x) / future_weight
     future_cog_z = (current_moment_z + item_moment_z) / future_weight
 
-    # Calculate the center of the bin
+    # Reference centre of the bin (Z shifted towards the back for vehicle stability)
     bin_center_x = bin.width / Decimal(2)
-    bin_center_z = bin.depth * Decimal(0.4) # consider the center of gravity more tolerant towards the back of the bin, where the load is generally more stable
-    #bin_center_z = bin.depth / Decimal(2)
+    bin_center_z = bin.depth * Decimal('0.4')
 
-    # Calculate the tolerances in absolute terms
-    tol_x = bin.width * Decimal(tol_x_percent)
-    tol_z = bin.depth * Decimal(tol_z_percent)
+    # Progressive tolerance: shrinks linearly with load_ratio
+    #   load_ratio ≈ 0  →  effective_tol = tol_max  (full freedom)
+    #   load_ratio = 1  →  effective_tol = tol_max * (1 - progressive_tightening)
+    tightening = Decimal(str(progressive_tightening))
+    scale = Decimal(1) - load_ratio * tightening
+    tol_x = bin.width * Decimal(str(tol_x_percent)) * scale
+    tol_z = bin.depth * Decimal(str(tol_z_percent)) * scale
 
-    # Check if the future center of gravity is within the tolerances
-    if abs(future_cog_x - bin_center_x) > tol_x :
+    # Future deviations from bin centre
+    future_dev_x = abs(future_cog_x - bin_center_x)
+    future_dev_z = abs(future_cog_z - bin_center_z)
+
+    # Hard reject: future CoG outside the progressive tolerance zone
+    if future_dev_x > tol_x:
+        return False
+    if future_dev_z > tol_z:
         return False
 
-    if abs(future_cog_z - bin_center_z) > tol_z :
-        return False
+    # Corrective bias: if the current CoG is already significantly off-centre,
+    # reject placements that would make it worse.
+    if bin.weight > 0:
+        current_dev_x = abs(current_cog.x - bin_center_x)
+        current_dev_z = abs(current_cog.z - bin_center_z)
+
+        # Threshold = half the effective tolerance
+        if current_dev_x > tol_x / 2 and future_dev_x > current_dev_x:
+            return False
+        if current_dev_z > tol_z / 2 and future_dev_z > current_dev_z:
+            return False
 
     return True  
