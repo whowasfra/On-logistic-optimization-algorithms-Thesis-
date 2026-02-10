@@ -100,9 +100,9 @@ def is_supported(bin: Bin, item : Item, minimum_support : float = 0.75):
 
 @constraint(weight=25) 
 def maintain_center_of_gravity(bin : Bin, item : Item, 
-                              tol_x_percent : float = 0.3,
-                              tol_z_percent : float = 0.3,
-                              min_load_threshold : float = 0.3):
+                              tol_x_percent : float = 0.2,
+                              tol_z_percent : float = 0.2,
+                              min_load_threshold : float = 0.1):
     """
     Check that the center of gravity of the bin after placing the item is within a certain tolerance from the center of the bin.
     :param tol_x_percent: Tolerance on the X axis as a percentage of the bin width (0.0-1.0)
@@ -123,9 +123,9 @@ def maintain_center_of_gravity(bin : Bin, item : Item,
     # Calculate the current center of gravity
     current_cog = bin.calculate_center_of_gravity()
 
-    # Calculate the center of gravity of the item to be added
-    current_moment_x = current_cog.x * item.weight
-    current_moment_z = current_cog.z * item.weight
+    # Calculate the total moment of the current load
+    current_moment_x = current_cog.x * bin.weight
+    current_moment_z = current_cog.z * bin.weight
 
     # Calculate the moments of the new item
     item_center_x = item.position.x + (item.width / Decimal(2))
@@ -140,8 +140,8 @@ def maintain_center_of_gravity(bin : Bin, item : Item,
 
     # Calculate the center of the bin
     bin_center_x = bin.width / Decimal(2)
-    #bin_center_z = bin.depth * Decimal(0.4) # consider the center of gravity more tolerant towards the back of the bin, where the load is generally more stable
-    bin_center_z = bin.depth / Decimal(2)
+    bin_center_z = bin.depth * Decimal(0.4) # consider the center of gravity more tolerant towards the back of the bin, where the load is generally more stable
+    #bin_center_z = bin.depth / Decimal(2)
 
     # Calculate the tolerances in absolute terms
     tol_x = bin.width * Decimal(tol_x_percent)
