@@ -91,6 +91,16 @@ def render_item(item : Item, axes, color : str, border_width : float = BORDER_WI
     render_volume(item.volume,axes,color,border_width,border_color,transparency)
 
 def render_bin_interactive(bin : Bin, colors : list[str] = COLORS, render_bin : bool = True, border_width : float = BORDER_WIDTH, border_color : str = BORDER_COLOR, transparency : float = TRANSPARENCY):
+    """
+    Render a bin with all items using Plotly (interactive 3D view).
+    
+    :param bin: The bin to render
+    :param colors: List of colors for items
+    :param render_bin: Whether to render the bin container
+    :param border_width: Border width for items
+    :param border_color: Border color for items
+    :param transparency: Transparency level for items
+    """
     if not bin.items:
             return
 
@@ -102,13 +112,45 @@ def render_bin_interactive(bin : Bin, colors : list[str] = COLORS, render_bin : 
     if render_bin:
         render_volume_interactive(Volume(size=bin.dimension),fig=fig,color="lightgrey",transparency=.9,name="Bin",show_border=False)
 
+    cog = bin.calculate_center_of_gravity()
+    fig.add_trace(go.Scatter3d(
+        x = [float(cog.x)],
+        y = [float(cog.z)],
+        z = [float(cog.y)],
+        mode='markers',
+        marker=dict(
+            size=12,
+            color='red',
+            symbol = 'diamond',
+            opacity=1.0
+        ),
+        name=f"Center of Gravity"
+    ))
+    
+    center_x = float(bin.width) / 2
+    center_y = 0
+    center_z = float(bin.depth) * 0.4
+    
+    fig.add_trace(go.Scatter3d(
+            x=[center_x], 
+            y=[center_z], 
+            z=[center_y], 
+            mode='markers',
+            marker=dict(size=8, color='lime', symbol='x'),
+            name='Target CoG'
+    ))
+
     fig.update_layout(
         scene=dict(
             xaxis=dict(title='Width'),
             zaxis=dict(title='Height'),
             yaxis=dict(title='Depth'),
-            aspectmode='data'
+            aspectmode='data',
+            camera=dict(
+                eye=dict(x=1.5, y=1.5, z=1.5)
+            )       
         ),
+        showlegend=True,
         title=f"3D Packing Visualization - {bin} ({len(bin.items)} items)"
     )
 
