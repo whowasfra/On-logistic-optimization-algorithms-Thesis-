@@ -75,13 +75,26 @@ def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], def
         else:
             break
 
+        # First pass: try to place each item
+        retry_items = []  # Items that failed but might fit after others are placed
         for item in items_to_pack:
             if not bin.items:
-                if not bin.put_item(item,constraints):
-                    unfitted_items.append(item)
+                # First item in bin: try origin position
+                if not bin.put_item(item, constraints):
+                    retry_items.append(item)  # Retry later with try_fit
             else:
-                if not try_fit(bin,item):
+                if not try_fit(bin, item):
                     unfitted_items.append(item)
+        
+        # Second pass: retry items that failed when bin was empty
+        # Now that other items might be placed, try_fit can find adjacent positions
+        if bin.items and retry_items:
+            for item in retry_items:
+                if not try_fit(bin, item):
+                    unfitted_items.append(item)
+        else:
+            # No items were placed, add retry_items to unfitted
+            unfitted_items.extend(retry_items)
 
         # if no item has been packed probably there's no solution
         if len(bin.items) == 0:
@@ -91,7 +104,8 @@ def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], def
         unfitted_items = []
         current_configuration.append(bin)
     
-    return current_configuration
+    # Return both configuration and any remaining unfitted items
+    return current_configuration, items_to_pack
 
 
 # ---------------------------------------------------------------------------
@@ -347,7 +361,8 @@ def multi_anchor_packer(available_bins: list[BinModel], items_to_pack: list[Item
         unfitted_items = []
         current_configuration.append(bin)
 
-    return current_configuration
+    # Return both configuration and any remaining unfitted items
+    return current_configuration, items_to_pack
 
 class Packer():
     """
@@ -368,6 +383,7 @@ class Packer():
         self.items  =  items if items is not None else []
         self.default_bin           = default_bin
         self.current_configuration = current_configuration if current_configuration is not None else []
+        self.unfitted_items : list[Item] = []  # Items that could not be placed
     
     def set_default_bin(self, bin : BinModel):
         self.default_bin = bin
@@ -443,7 +459,7 @@ class Packer():
         )
 
         if strategy == 'multi_anchor':
-            self.current_configuration = multi_anchor_packer(
+            self.current_configuration, self.unfitted_items = multi_anchor_packer(
                 available_bins=available_bins,
                 items_to_pack=items_to_pack,
                 default_bin=self.default_bin,
@@ -452,7 +468,7 @@ class Packer():
                 compact_weight=compact_weight,
             )
         else:
-            self.current_configuration = base_packer(
+            self.current_configuration, self.unfitted_items = base_packer(
                 available_bins=available_bins,
                 items_to_pack=items_to_pack,
                 default_bin=self.default_bin,
