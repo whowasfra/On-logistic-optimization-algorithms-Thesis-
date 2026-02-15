@@ -194,8 +194,8 @@ def multi_anchor_packer(available_bins: list[BinModel], items_to_pack: list[Item
         if cx >= 0 and cz >= 0:
             anchors.add((cx, cz))
 
-        # Source 3 – Item-adjacent positions
-        for ib in bin.items:
+        # Source 3 – Item-adjacent positions (limited to last 8 items for performance)
+        for ib in bin.items[-8:]:
             px, pz = ib.position.x, ib.position.z
             # right of existing item
             anchors.add((px + ib.width, pz))
