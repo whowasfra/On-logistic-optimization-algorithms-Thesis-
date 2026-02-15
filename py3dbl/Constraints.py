@@ -102,7 +102,6 @@ def is_supported(bin: Bin, item : Item, minimum_support : float = 0.75):
 def maintain_center_of_gravity(bin : Bin, item : Item, 
                               tol_x_percent : float = 0.2,
                               tol_z_percent : float = 0.2,
-                              min_load_threshold : float = 0.1,
                               progressive_tightening : float = 0.7):
     """
     Progressive Center-of-Gravity constraint.
@@ -123,17 +122,14 @@ def maintain_center_of_gravity(bin : Bin, item : Item,
 
     :param tol_x_percent: Maximum tolerance on X as a ratio of bin width (0.0-1.0)
     :param tol_z_percent: Maximum tolerance on Z as a ratio of bin depth (0.0-1.0)
-    :param min_load_threshold: Load ratio below which the constraint is skipped
     :param progressive_tightening: How much the tolerance shrinks at full load (0.0-1.0).
            0.0 = fixed tolerance, 1.0 = tolerance shrinks to zero at full load.
     """
     
-    # Calculate the future weight
+    # Calculate the future weight and load ratio
     future_weight = bin.weight + item.weight
     if bin.max_weight > 0:
         load_ratio = future_weight / bin.max_weight
-        if load_ratio < min_load_threshold:
-            return True  # Skip the constraint for low load ratios
     else:
         load_ratio = Decimal(0)
         
