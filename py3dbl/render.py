@@ -129,7 +129,7 @@ def render_bin_interactive(bin : Bin, colors : list[str] = COLORS, render_bin : 
     
     center_x = float(bin.width) / 2
     center_y = 0
-    center_z = float(bin.depth) * 0.4
+    center_z = float(bin.depth) / 2
     
     fig.add_trace(go.Scatter3d(
             x=[center_x], 

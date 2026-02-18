@@ -100,8 +100,8 @@ def is_supported(bin: Bin, item : Item, minimum_support : float = 0.75):
 
 @constraint(weight=25) 
 def maintain_center_of_gravity(bin : Bin, item : Item, 
-                              tol_x_percent : float = 0.2,
-                              tol_z_percent : float = 0.2,
+                              tol_x_percent : float = 0.10,
+                              tol_z_percent : float = 0.10,
                               progressive_tightening : float = 0.7):
     """
     Progressive Center-of-Gravity constraint.
@@ -153,13 +153,13 @@ def maintain_center_of_gravity(bin : Bin, item : Item,
 
     # Reference centre of the bin (Z shifted towards the back for vehicle stability)
     bin_center_x = bin.width / Decimal(2)
-    bin_center_z = bin.depth * Decimal('0.4')
+    bin_center_z = bin.depth / Decimal(2) 
 
     # Progressive tolerance: shrinks linearly with load_ratio
     #   load_ratio ≈ 0  →  effective_tol = tol_max  (full freedom)
     #   load_ratio = 1  →  effective_tol = tol_max * (1 - progressive_tightening)
     tightening = Decimal(str(progressive_tightening))
-    scale = Decimal(1) - load_ratio * tightening
+    scale = Decimal(1) - (load_ratio * tightening)
     tol_x = bin.width * Decimal(str(tol_x_percent)) * scale
     tol_z = bin.depth * Decimal(str(tol_z_percent)) * scale
 
