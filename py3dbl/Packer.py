@@ -141,8 +141,8 @@ def base_packer(available_bins : list[BinModel], items_to_pack : list[Item], def
 def multi_anchor_packer(available_bins: list[BinModel], items_to_pack: list[Item],
                         default_bin: None | BinModel = None,
                         constraints: list[Constraint] = BASE_CONSTRAINTS,
-                        height_weight: float = 0.3,
-                        compact_weight: float = 0.2):
+                        height_weight: float = 0.6,
+                        compact_weight: float = 0.4):
     """
     Multi-anchor placement strategy for balanced 3D bin packing.
 
