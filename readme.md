@@ -1,12 +1,75 @@
-# About this project
+# py3dbl - 3D Bin Packing with Load Balancing
 
-	This project aims to make advancements in current 3D bin packing problem solutions for logistic, and in particular on last-mile delivery.
-	The project is made in Python for ease of use and versatility.
+A Python library for 3D bin packing with **center of gravity constraints**, developed as part of my thesis on logistics optimization for last-mile delivery.
 
-# How to run and test
+## The Problem
 
-	1. Clone this repository on your machine
-	2. Create a virtual enviroment (e.g. *python3 -m venv "enviroment_name"*)
-	3. Install the required packages as of *requirements.txt* (e.g. *pip install -r requirements.txt*)
-	4. Open *test.ipynb* and enjoy the visit
+Standard bin packing algorithms (like Left-Bottom-Back) place items greedily starting from one corner. This creates an inherent bias that makes them **incompatible with load balancing constraints** — when you add a center of gravity check, these algorithms reject every placement and fail completely.
 
+## My Contribution
+
+This project extends [py3dbl](https://github.com/Giulian7/On-logistic-optimization-algorithms-Thesis-) with:
+
+1. **Center of Gravity Constraint** — Ensures the load remains balanced within configurable tolerances  
+2. **Multi-Anchor Strategy** — A new placement algorithm that generates positions from multiple anchor points (corners, center, symmetric reflections), overcoming the greedy bias
+
+## Results
+
+Tested on a Fiat Ducato cargo van model with asymmetric loads (heavy + light items):
+
+| Strategy | Items Loaded | CoG Deviation |
+|----------|--------------|---------------|
+| Greedy + CoG constraint | **0/20** | — |
+| Multi-Anchor + CoG constraint | **20/20** | < 10% |
+
+The greedy algorithm fails completely with CoG constraints. Multi-Anchor loads everything while keeping the cargo balanced.
+
+## Quick Start
+
+```bash
+pip install -r requirements.txt
+```
+
+```python
+from py3dbl import Packer, BinModel, item_generator, constraints
+
+# Define your vehicle
+van = BinModel(name="Ducato", size=(1.67, 2.0, 3.10), max_weight=1400)
+
+# Generate some items
+items = item_generator(
+    width=(0.15, 0.60), height=(0.15, 0.60), depth=(0.15, 0.80),
+    weight=(2, 40), batch_size=50
+)
+
+# Pack with load balancing
+packer = Packer()
+packer.set_default_bin(van)
+packer.add_batch(items)
+packer.pack(
+    strategy="multi_anchor",
+    constraints=[
+        constraints['weight_within_limit'],
+        constraints['fits_inside_bin'],
+        constraints['no_overlap'],
+        constraints['is_supported'],
+        constraints['maintain_center_of_gravity'],  # the key addition
+    ]
+)
+
+# Visualize
+from py3dbl import render_bin_interactive
+render_bin_interactive(packer.current_configuration[0])
+```
+
+## Run the Comparison Tests
+
+```bash
+python test_cog_comparison.py --asymmetric
+```
+
+This runs the full comparison between Greedy and Multi-Anchor strategies, with and without CoG constraints. Results are saved as interactive HTML renders in `results/`.
+
+## License
+
+MIT
