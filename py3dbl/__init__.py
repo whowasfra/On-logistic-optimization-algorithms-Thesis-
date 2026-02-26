@@ -1,3 +1,8 @@
+"""
+py3dbl - Python 3D Bin Packing Library
+Base architecture and algorithms by Giuliano Pardini (Giulian7).
+Forked and extended for thesis work by Francesco Chiera.
+"""
 from .Packer import Packer
 from .Bin import Bin, BinModel
 from .Item import Item

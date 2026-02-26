@@ -1,6 +1,9 @@
 # py3dbl - 3D Bin Packing with Load Balancing
 
+
 A Python library for 3D bin packing with **center of gravity constraints**, developed as part of my thesis on logistics optimization for last-mile delivery.
+
+> **Note:** This library is a fork and extension of [py3dbl](https://github.com/Giulian7/On-logistic-optimization-algorithms-Thesis-), originally developed by Giuliano Pardini (Giulian7). All core architecture and algorithms are based on his work, with additional features and tests added for thesis purposes.
 
 ## The Problem
 
