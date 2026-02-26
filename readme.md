@@ -13,8 +13,12 @@ Standard bin packing algorithms (like Left-Bottom-Back) place items greedily sta
 
 This project extends [py3dbl](https://github.com/Giulian7/On-logistic-optimization-algorithms-Thesis-) with:
 
-1. **Center of Gravity Constraint** — Ensures the load remains balanced within configurable tolerances  
-2. **Multi-Anchor Strategy** — A new placement algorithm that generates positions from multiple anchor points (corners, center, symmetric reflections), overcoming the greedy bias
+- **Center of Gravity Constraint:** A new modular constraint to ensure load balancing, with progressive tolerance and corrective bias.
+- **Multi-Anchor Placement Strategy:** An algorithm that generates candidate positions from multiple anchor points, overcoming the greedy bias and enabling balanced solutions.
+- **Experimental Comparison Test:** Automated script to compare Greedy vs Multi-Anchor strategies, with and without CoG constraints, saving results as interactive HTML and CSV/LaTeX tables.
+- **Extended Documentation:** Italian and English documentation, practical examples, and API reference.
+- **Bugfixes and Improvements:** Fixes to original code (edge cases, statistics, item state restore) and usability enhancements.
+
 
 ## Results
 
